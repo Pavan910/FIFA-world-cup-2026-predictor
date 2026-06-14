@@ -44,14 +44,14 @@ interface ApiStandingGroup {
   table: ApiStandingRow[];
 }
 
-async function fetchFromApi<T>(path: string): Promise<T | null> {
+async function fetchFromApi<T>(path: string, revalidate: number): Promise<T | null> {
   const apiKey = process.env.FOOTBALL_DATA_API_KEY;
   if (!apiKey) return null;
 
   try {
     const res = await fetch(`${API_BASE}${path}`, {
       headers: { "X-Auth-Token": apiKey },
-      next: { revalidate: 60 },
+      next: { revalidate },
     });
     if (!res.ok) return null;
     return (await res.json()) as T;
@@ -107,7 +107,8 @@ function mapStandingRow(raw: ApiStandingRow): StandingRow {
 
 export async function getMatches(): Promise<Match[]> {
   const data = await fetchFromApi<{ matches: ApiMatch[] }>(
-    `/competitions/${COMPETITION}/matches`
+    `/competitions/${COMPETITION}/matches`,
+    30
   );
   if (!data?.matches?.length) return mockMatches;
   return data.matches.map(mapMatch);
@@ -115,7 +116,8 @@ export async function getMatches(): Promise<Match[]> {
 
 export async function getGroups(): Promise<Group[]> {
   const data = await fetchFromApi<{ standings: ApiStandingGroup[] }>(
-    `/competitions/${COMPETITION}/standings`
+    `/competitions/${COMPETITION}/standings`,
+    60
   );
   const groupStandings = data?.standings?.filter(
     (s) => s.type === "TOTAL" && s.group

@@ -19,13 +19,6 @@ export default async function FixturesPage({
   const matches = await getMatches();
 
   const activeFilter = FILTERS.find((filter) => filter.param === status);
-  const filtered = activeFilter?.statuses
-    ? matches.filter((match) => activeFilter.statuses!.includes(match.status))
-    : matches;
-
-  const sorted = [...filtered].sort(
-    (a, b) => new Date(a.utcDate).getTime() - new Date(b.utcDate).getTime()
-  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -50,7 +43,7 @@ export default async function FixturesPage({
           })}
         </div>
       </div>
-      <FixtureList matches={sorted} />
+      <FixtureList initialMatches={matches} statuses={activeFilter?.statuses} />
     </div>
   );
 }
