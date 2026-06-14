@@ -41,14 +41,14 @@ interface ApiEvent {
   bookmakers: ApiBookmaker[];
 }
 
-async function fetchLiveOdds(): Promise<ApiEvent[] | null> {
+async function fetchLiveOdds(revalidate: number): Promise<ApiEvent[] | null> {
   const apiKey = process.env.ODDS_API_KEY;
   if (!apiKey) return null;
 
   try {
     const res = await fetch(
       `${ODDS_API_BASE}/sports/${SPORT}/odds?apiKey=${apiKey}&regions=eu,uk&markets=h2h&oddsFormat=decimal`,
-      { next: { revalidate: 1800 } }
+      { next: { revalidate } }
     );
     if (!res.ok) return null;
     return (await res.json()) as ApiEvent[];
@@ -172,8 +172,14 @@ function estimateOdds(matches: Match[], match: Match): MatchOdds {
   };
 }
 
+const LIVE_REVALIDATE_SECONDS = 60;
+const UPCOMING_REVALIDATE_SECONDS = 1800;
+
 export async function getMatchOdds(matches: Match[], match: Match): Promise<MatchOdds> {
-  const events = await fetchLiveOdds();
+  const isLive = match.status === "IN_PLAY" || match.status === "PAUSED";
+  const revalidate = isLive ? LIVE_REVALIDATE_SECONDS : UPCOMING_REVALIDATE_SECONDS;
+
+  const events = await fetchLiveOdds(revalidate);
   if (!events) return estimateOdds(matches, match);
 
   const event = findEvent(events, match);
